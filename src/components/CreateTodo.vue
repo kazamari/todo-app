@@ -16,7 +16,7 @@
 		},
 		methods: {
 			sendForm(){
-				if (this.titleText.length > 0) {
+				if (this.titleText && this.titleText.trim()) {
 					this.$emit('create-todo', {
 						title: this.titleText,
 						done: false

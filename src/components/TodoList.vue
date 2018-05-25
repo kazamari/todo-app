@@ -1,18 +1,19 @@
 <template>
 	<div class="ui piled segments">
 		<div class="ui segment header">
-            <input name="" type="checkbox" @click="completeAll" :checked="isCompleteAll">
+            <input v-if="todos.length" name="" type="checkbox" @click="completeAll" :checked="isCompleteAll">
             <label><create-todo @create-todo="addTodo"></create-todo></label>
         	
         </div>
+
 		<todo v-for="(todo, index) in shownList"
 				  :key="index"
 				  :id = "index"
 				  :todo="todo"
-				  @delete-todo="deleteTodo(index)"
+				  @delete-todo="deleteTodo"
 				  @complete-todo="completeTodo(index)"
 				  @edit-todo="editTodo($event, index)"></todo>
-		<div class="ui secondary segment">
+		<div class="ui secondary segment" v-if="todos.length">
 			<div class="ui grid">
 				<div class="four wide column">
 					<p>Active Tasks: {{active.length}}</p>
@@ -25,7 +26,7 @@
 					</div>
 				</div>
 				<div class="four wide column">
-					<button class="ui basic button" @click="clearCompleted">Clear completed</button>
+					<button v-if="completed.length" class="ui basic button" @click="clearCompleted">Clear completed</button>
 				</div>
 			</div>
 		</div>
@@ -35,6 +36,22 @@
 <script>
 	import Todo from './Todo'
 	import CreateTodo from './CreateTodo'
+
+	const filters = {
+		all(todos){
+			return todos
+		},
+		active(todos){
+			return todos.filter((todo) => {
+				return !todo.done
+			})
+		},
+		completed(todos){
+			return todos.filter((todo) => {
+				return todo.done
+			})
+		}
+	}
 	
 	export default{
 		data() {
@@ -43,7 +60,12 @@
 				shown: 'all'
 			}
 		},
-		mounted(){
+		watch: {
+			todos() {
+				this.writeToStorage()
+			}
+		},
+		created(){
 			if(localStorage.getItem('todos') === null){
 				localStorage.setItem('todos', JSON.stringify([{
 					title: 'Add task to list',
@@ -54,19 +76,13 @@
 		},
 		computed: {
 			shownList(){
-				if (this.shown === 'active'){
-					return this.active
-				}else if (this.shown === 'completed'){
-					return this.completed
-				}else{
-					return this.todos
-				}
+				return filters[this.shown](this.todos)
 			},
 			completed(){
-				return this.todos.filter(todo => {return todo.done === true})
+				return filters.completed(this.todos)
 			},
 			active(){
-				return this.todos.filter(todo => {return todo.done === false})
+				return filters.active(this.todos)
 			},
 			isCompleteAll(){
 				return this.todos.length === this.completed.length && this.todos.length > 0
@@ -83,32 +99,22 @@
 			},
 			editTodo(event, index){
 				this.todos[index] = event
-				this.writeToStorage()
 			},
-			deleteTodo(index){
+			deleteTodo(event, i){
+				let index = this.todos.indexOf(event)
 				this.todos.splice(index, 1)
-				this.writeToStorage()
-			},
-			completeTodo(index){
-				this.todos[index].done = !this.todos[index].done
-				this.writeToStorage()
 			},
 			completeAll(e){
 				for(let todo of this.todos){
 					todo.done = e.target.checked ? true : false
 				}
 				this.showList('all')
-				this.writeToStorage()
 			},
 			addTodo(event){
 				this.todos.push(event)
-				this.showList('all')
-				this.writeToStorage()
 			},
 			clearCompleted(){
 				this.todos = this.active
-				this.showList('all')
-				this.writeToStorage()
 			},
 			writeToStorage(){
 				localStorage.setItem('todos', JSON.stringify(this.todos))
